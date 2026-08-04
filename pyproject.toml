@@ -9,7 +9,7 @@ description = "A self-advancing loop for AI agents: read state, run quality gate
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Homayoun Safarpour Dehkordi", email = "homayoun.safarpour@gmail.com" }]
+authors = [{ name = "Homayoun Safarpour", email = "homayoun.safarpour@gmail.com" }]
 keywords = ["agentic-ai", "ai-engineering", "agent-loop", "llm-agents", "automation"]
 classifiers = [
     "Programming Language :: Python :: 3",

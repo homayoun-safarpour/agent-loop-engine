@@ -124,12 +124,14 @@ Issues and PRs welcome. Run `pytest -q` and `ruff check src tests` before pushin
 
 ```bibtex
 @software{safarpour2026agentloopengine,
-  author = {Safarpour Dehkordi, Homayoun},
+  author = {Homayoun Safarpour},
   title  = {agent-loop-engine: a self-advancing loop for AI agents},
   year   = {2026},
   url    = {https://github.com/homayoun-safarpour/agent-loop-engine}
 }
 ```
+
+Author: Homayoun Safarpour · [LinkedIn](https://www.linkedin.com/in/homayoun-safarpour/)
 
 ## License
 
