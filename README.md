@@ -60,7 +60,7 @@ loop-engine tick --state LOOP_STATE.md \
   --gate "lint=ruff check src tests"
 ```
 
-The engine prints exactly one order and why. It never executes the backlog item itself — it tells the operator (human, cron job, or LLM agent) what the next bounded action is.
+The engine prints exactly one order and why. It never executes the backlog item itself. It tells the operator (human, cron job, or LLM agent) what the next bounded action is.
 
 ## What is in the box
 
@@ -74,7 +74,7 @@ The engine prints exactly one order and why. It never executes the backlog item 
 
 ## Worked example (real output)
 
-This repository ran the engine on itself during its own first build. First tick — the lint gate was genuinely red:
+This repository ran the engine on itself during its own first build. First tick: the lint gate was genuinely red:
 
 ```
 $ loop-engine tick --state examples/LOOP_STATE.md --gate "tests=python -m pytest -q" --gate "lint=python -m ruff check src tests"
@@ -107,7 +107,7 @@ The append-only journal it produced (`examples/journal/JOURNAL.md`):
 
 ## Why this exists
 
-I run multi-month projects where an AI agent advances the work daily on a schedule, with or without me in the room. Every failure I hit reduced to the same pattern: the agent knew *how* to do tasks but had no policy for *which* task was safe to do next. Encoding that policy in prompts was unreliable — prompts drift, and nothing tested them. So the policy became a package: three rules, sixteen tests, and a journal that lets any session (human or agent) reconstruct the project's state in one read.
+Long-running agent projects fail on policy, not on capability. The agent often knows *how* to do tasks and still has no tested rule for *which* task is safe next. Encoding that policy in prompts drifts and cannot be unit-tested. So the policy became a package: three rules, sixteen tests (`tests/test_decide.py::test_a_red_gate_always_beats_new_work` is the central claim), and an append-only journal any session can read to reconstruct state.
 
 ## Design commitments
 
@@ -118,7 +118,7 @@ I run multi-month projects where an AI agent advances the work daily on a schedu
 
 ## Contributing
 
-Issues and PRs welcome. Run `pytest -q` and `ruff check src tests` before pushing — the engine itself will tell you the same thing.
+Issues and PRs welcome. Run `pytest -q` and `ruff check src tests` before pushing. The engine itself will tell you the same thing on the next tick.
 
 ## Citation
 
