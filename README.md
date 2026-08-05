@@ -64,10 +64,7 @@ The engine prints exactly one order and why. It never executes the backlog item 
 
 ## Field guide
 
-Prompting alone fails on long work when memory is only a chat window and “done” is whatever the model claims. **[docs/FIELD_GUIDE.md](docs/FIELD_GUIDE.md)** synthesizes Anthropic’s agent/loop guidance plus four other high-signal sources into a five-decision Loop Contract, then maps it onto `loop-engine tick` and exit-code gates.
-
-- Blank contract: [`examples/loop_contract/LOOP_CONTRACT.md`](examples/loop_contract/LOOP_CONTRACT.md)
-- Filled sample for this repo: [`examples/loop_contract/sample_filled.md`](examples/loop_contract/sample_filled.md)
+Prompting alone fails on long work when memory is only a chat window and "done" is whatever the model claims. Use the standalone **[agent-loop-field-guide](https://github.com/homayoun-safarpour/agent-loop-field-guide)** (copy `templates/LOOP_CONTRACT.md` into your project before you automate). A copy also lives here under [`docs/FIELD_GUIDE.md`](docs/FIELD_GUIDE.md) and [`examples/loop_contract/`](examples/loop_contract/).
 
 ## What is in the box
 
