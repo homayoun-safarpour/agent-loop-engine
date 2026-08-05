@@ -1,7 +1,7 @@
 # agent-loop-engine — live project state
 
-This is the real backlog of this repository, advanced one bounded increment
-per day by the loop itself. The journal of every tick is in `journal/JOURNAL.md`.
+Engineering backlog for this repository. The product loop journals ticks in
+`journal/JOURNAL.md` when you run it against this file.
 
 - [ ] B1 `loop-engine init` scaffolds LOOP_STATE.md + journal in any repo (cost: S) (touched: 2026-08-03)
 - [ ] B2 `--commit` flag: auto-commit state + journal after a tick (cost: M) (touched: 2026-08-03)
