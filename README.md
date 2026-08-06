@@ -60,6 +60,9 @@ loop-engine tick --state LOOP_STATE.md \
   --gate "lint=ruff check src tests"
 ```
 
+For a third gate pattern (`types` / mypy) plus a sample journal REPAIR block, see
+[`examples/LOOP_STATE.md`](examples/LOOP_STATE.md).
+
 The engine prints exactly one order and why. It never executes the backlog item itself. It tells the operator (human, cron job, or LLM agent) what the next bounded action is.
 
 ## Field guide
