@@ -1,6 +1,6 @@
 ﻿# agent-loop-engine
 
-**Agent loops keep adding features while pytest is red and the hardest backlog item stalls for days—because chat prompts cannot enforce a verifiable "repair before advance" rule. One `loop-engine tick` runs your shell gates and prints a single bounded order plus an append-only journal.**
+**Agent loops keep adding features while pytest is red and the hardest backlog item stalls for days: because chat prompts cannot enforce a verifiable "repair before advance" rule. One `loop-engine tick` runs your shell gates and prints a single bounded order plus an append-only journal.**
 
 [![CI](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
@@ -27,7 +27,7 @@ read state (markdown backlog, human-editable)
         |
 run quality gates (pytest, ruff, anything with an exit code)
         |
-decide ONE action:   repair > unstick > advance > close
+decide ONE action: repair > unstick > advance > close
         |
 journal it (append-only) and hand the order to the operator
 ```

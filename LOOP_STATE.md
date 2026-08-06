@@ -1,4 +1,4 @@
-# agent-loop-engine — live project state
+# agent-loop-engine : live project state
 
 Engineering backlog for this repository. The product loop journals ticks in
 `journal/JOURNAL.md` when you run it against this file.
