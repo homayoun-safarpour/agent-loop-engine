@@ -1,6 +1,6 @@
 ﻿# agent-loop-engine
 
-**Agent loops keep adding features while pytest is red and the hardest backlog item stalls for days: because chat prompts cannot enforce a verifiable "repair before advance" rule. One `loop-engine tick` runs your shell gates and prints a single bounded order plus an append-only journal.**
+**Agent loops keep adding features while pytest is red and the hardest backlog item stalls for days—because chat prompts cannot enforce a verifiable "repair before advance" rule. One `loop-engine tick` runs your shell gates and prints a single bounded order plus an append-only journal.**
 
 [![CI](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
@@ -27,7 +27,7 @@ read state (markdown backlog, human-editable)
         |
 run quality gates (pytest, ruff, anything with an exit code)
         |
-decide ONE action: repair > unstick > advance > close
+decide ONE action:   repair > unstick > advance > close
         |
 journal it (append-only) and hand the order to the operator
 ```
@@ -59,9 +59,6 @@ loop-engine tick --state LOOP_STATE.md \
   --gate "tests=pytest -q" \
   --gate "lint=ruff check src tests"
 ```
-
-For a third gate pattern (`types` / mypy) plus a sample journal REPAIR block, see
-[`examples/LOOP_STATE.md`](examples/LOOP_STATE.md).
 
 The engine prints exactly one order and why. It never executes the backlog item itself. It tells the operator (human, cron job, or LLM agent) what the next bounded action is.
 
@@ -122,6 +119,22 @@ Long-running agent projects fail on policy, not on capability. The agent often k
 - **Zero runtime dependencies.** Standard library only.
 - **Human-editable state.** Markdown checkboxes, not a database. If the tooling breaks, the queue survives.
 - **Every claim above is a test.** The central one: `tests/test_decide.py::test_a_red_gate_always_beats_new_work`.
+
+## Field alignment
+
+Eval-driven agent systems treat metrics and gates as the control loop (DSPy-style optimization, LangSmith-style online eval, trajectory deploy gates). This engine is the policy layer: **red gates block advance**. Claim boundaries: [docs/RELIABILITY_CARD.md](docs/RELIABILITY_CARD.md).
+
+## Fail-closed demo
+
+With a deliberately red gate, the next tick must choose repair (not advance):
+
+```bash
+# Windows
+loop-engine tick --state examples/LOOP_STATE.md --gate "tests=cmd /c exit /b 1"
+# Unix: --gate "tests=false"
+```
+
+Expect `action: repair` (gate red → no advance). That is the hire-signal: policy fails closed when quality is red.
 
 ## Contributing
 
