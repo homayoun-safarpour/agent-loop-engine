@@ -128,6 +128,13 @@ Long-running agent projects fail on policy, not on capability. The agent often k
 
 Eval-driven agent systems treat metrics and gates as the control loop (DSPy-style optimization, LangSmith-style online eval, trajectory deploy gates). This engine is the policy layer: **red gates block advance**. Claim boundaries: [docs/RELIABILITY_CARD.md](docs/RELIABILITY_CARD.md).
 
+## Related instruments
+
+- [agent-loop-field-guide](https://github.com/homayoun-safarpour/agent-loop-field-guide) - fill the Loop Contract before you automate
+- [judge-drift-sentinel](https://github.com/homayoun-safarpour/judge-drift-sentinel) - JUDGE_DRIFT vs SYSTEM_CHANGE gate (pairs with `examples/as_loop_gate.py` there)
+- [trace-gate](https://github.com/homayoun-safarpour/trace-gate) - trajectory deploy gate (exit 0/2)
+- [judge-field-guide](https://github.com/homayoun-safarpour/judge-field-guide) - link-checked map of the LLM-judge ecosystem
+
 ## Fail-closed demo
 
 With a deliberately red gate, the next tick must choose repair (not advance):
