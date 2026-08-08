@@ -1,4 +1,4 @@
-# Interview talking points : agent-loop-engine
+﻿# Interview talking points : agent-loop-engine
 
 Five CLI-backed points for a technical screen (no resume recap).
 
@@ -12,4 +12,6 @@ Five CLI-backed points for a technical screen (no resume recap).
 
 - [agent-loop-field-guide](https://github.com/homayoun-safarpour/agent-loop-field-guide) - fill the Loop Contract before you automate
 - [judge-field-guide](https://github.com/homayoun-safarpour/judge-field-guide) - CI-tested map of the LLM-judge ecosystem
-- [judge-drift-sentinel](https://github.com/homayoun-safarpour/judge-drift-sentinel) - plug as `--gate "drift=..."` for JUDGE_DRIFT fail-closed
+- [judge-drift-sentinel](https://github.com/homayoun-safarpour/judge-drift-sentinel) - plug as `--gate "drift=..."` for JUDGE_DRIFT fail-closed; history fixture under `examples/drifting/`
+
+
