@@ -44,6 +44,8 @@ git clone https://github.com/homayoun-safarpour/agent-loop-engine && cd agent-lo
 
 ## Quickstart
 
+Claim boundaries: [docs/RELIABILITY_CARD.md](docs/RELIABILITY_CARD.md).
+
 Your project state is a markdown file anyone can edit with zero tooling:
 
 ```markdown
