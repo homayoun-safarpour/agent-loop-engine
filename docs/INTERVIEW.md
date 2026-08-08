@@ -7,3 +7,9 @@ Five CLI-backed points for a technical screen (no resume recap).
 - **`--stale-days 2` unstick policy** : if the backlog head is untouched longer than the threshold, `decide` picks a cheaper open item so the loop does not freeze on one hard task.
 - **`--json` for automation** : same tick prints `{"action","target","reason"}` for cron, CI wrappers, or an operator agent that only executes the printed order.
 - **Journal at `--journal journal/JOURNAL.md`** : every tick appends gate results and the decision so the next session reads project state without chat archaeology (see `examples/journal/JOURNAL.md`).
+
+## Related instruments
+
+- [agent-loop-field-guide](https://github.com/homayoun-safarpour/agent-loop-field-guide) - fill the Loop Contract before you automate
+- [judge-field-guide](https://github.com/homayoun-safarpour/judge-field-guide) - CI-tested map of the LLM-judge ecosystem
+- [judge-drift-sentinel](https://github.com/homayoun-safarpour/judge-drift-sentinel) - plug as `--gate "drift=..."` for JUDGE_DRIFT fail-closed
