@@ -1,10 +1,37 @@
-﻿# agent-loop-engine
+# loop-engine
 
-**Agent loops keep adding features while pytest is red and the hardest backlog item stalls for days—because chat prompts cannot enforce a verifiable "repair before advance" rule. One `loop-engine tick` runs your shell gates and prints a single bounded order plus an append-only journal.**
+**Agent loops keep adding features while pytest is red. Chat prompts cannot enforce repair-before-advance.**
 
 [![CI](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+
+Deterministic agent loop: state file, quality gates, one bounded action, append-only journal.
+
+```bash
+git clone https://github.com/homayoun-safarpour/agent-loop-engine
+cd agent-loop-engine && pip install -e .
+loop-engine tick --state examples/LOOP_STATE.md --gate "tests=python examples/fail_gate.py"
+```
+
+```text
+action : repair
+target : tests
+reason : gate 'tests' is red; no new work on a broken base
+```
+
+## Use this when
+
+| Situation | Use this? |
+| --- | --- |
+| You want one bounded next action after pytest/ruff (or any exit code) | Yes |
+| You need a journal a later session can read without the chat log | Yes |
+| You want the engine to execute the backlog item itself | No. It prints the order. A human, cron, or agent runs it. |
+| You want an LLM to decide the policy | No. The three rules are unit-tested Python. |
+
+Not on PyPI yet. `pip install git+https://github.com/homayoun-safarpour/agent-loop-engine` is the other path.
+
+The limit: it does not score whether the work was good. It only decides which class of action is safe next.
 
 ## The problem
 
@@ -16,7 +43,7 @@ An agent (or a human) working a multi-week project session by session keeps maki
 | Stalling on the hardest item | Backlog head untouched for a week, nothing else moves either | The loop dies waiting for its worst task |
 | No memory between sessions | "Why is the project in this state?" requires chat-log archaeology | Decisions get re-made, work gets re-done |
 
-Schedulers run tasks on time. They do not decide *which* task is safe to run. That decision layer is what is missing, and it is small enough to be testable.
+Schedulers run tasks on time. They do not decide which task is safe to run. That decision layer is what is missing, and it is small enough to be testable.
 
 ## The insight
 
@@ -33,14 +60,6 @@ journal it (append-only) and hand the order to the operator
 ```
 
 The decision policy is three rules in priority order: **repair beats progress** (a red gate blocks all new work), **momentum beats order** (a head item stale >2 days loses its turn to the cheapest open item), and **one action per tick** (a failed session costs one increment, never the day).
-
-## Install
-
-```bash
-pip install git+https://github.com/homayoun-safarpour/agent-loop-engine
-# or from source
-git clone https://github.com/homayoun-safarpour/agent-loop-engine && cd agent-loop-engine && pip install -e .
-```
 
 ## Quickstart
 
@@ -65,6 +84,14 @@ loop-engine tick --state LOOP_STATE.md \
 ```
 
 The engine prints exactly one order and why. It never executes the backlog item itself. It tells the operator (human, cron job, or LLM agent) what the next bounded action is.
+
+When the gates are green on the bundled example state, the same CLI advances:
+
+```text
+action : advance
+target : M2 Add evaluation harness with held-out split
+reason : gates green and head item fresh; take the next open item
+```
 
 ## Field guide
 
@@ -122,7 +149,7 @@ Long-running agent projects fail on policy, not on capability. The agent often k
 - **No LLM dependency.** The engine decides; whatever executes can be a human, cron, or an agent. Decision logic must be deterministic and testable.
 - **Zero runtime dependencies.** Standard library only.
 - **Human-editable state.** Markdown checkboxes, not a database. If the tooling breaks, the queue survives.
-- **Every claim above is a test.** The central one: `tests/test_decide.py::test_a_red_gate_always_beats_new_work`.
+- **Every claim above is a test.** The central one: `tests/test_decide.py::test_a_red_gate_always_beats_new_work`. The first-screen claim: `tests/test_readme.py::test_readme_first_screen_matches_top100_craft`.
 
 ## Field alignment
 
@@ -137,15 +164,13 @@ Eval-driven agent systems treat metrics and gates as the control loop (DSPy-styl
 
 ## Fail-closed demo
 
-With a deliberately red gate, the next tick must choose repair (not advance):
+The first-screen command uses `examples/fail_gate.py` so the red-gate path is the same on Windows and Unix.
 
 ```bash
-# Windows
-loop-engine tick --state examples/LOOP_STATE.md --gate "tests=cmd /c exit /b 1"
-# Unix: --gate "tests=false"
+loop-engine tick --state examples/LOOP_STATE.md --gate "tests=python examples/fail_gate.py"
 ```
 
-Expect `action: repair` (gate red → no advance). That is the hire-signal: policy fails closed when quality is red.
+Expect `action: repair` (gate red, no advance). That is the hire-signal: policy fails closed when quality is red.
 
 ## Contributing
 
@@ -162,7 +187,7 @@ Issues and PRs welcome. Run `pytest -q` and `ruff check src tests` before pushin
 }
 ```
 
-Author: Homayoun Safarpour Â· [LinkedIn](https://www.linkedin.com/in/homayoun-safarpour/)
+Author: Homayoun Safarpour. [LinkedIn](https://www.linkedin.com/in/homayoun-safarpour/)
 
 ## License
 
