@@ -1,4 +1,4 @@
-"""Contract template presence — Field Guide claim: blank LOOP_CONTRACT has required headings."""
+"""Contract template presence: Field Guide claim: blank LOOP_CONTRACT has required headings."""
 
 from pathlib import Path
 

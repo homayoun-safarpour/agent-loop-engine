@@ -1,6 +1,6 @@
 """Append-only journal: the loop's memory between ticks.
 
-Every tick writes one entry. History is never rewritten — the same rule as a
+Every tick writes one entry. History is never rewritten, the same rule as a
 lab notebook. When an agent (or a human) wants to know why the project is in
 its current state, the journal answers without any chat-log archaeology.
 """
