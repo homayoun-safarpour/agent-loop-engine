@@ -1,4 +1,4 @@
-# Example project state — an ML feature backlog
+# Example project state: an ML feature backlog
 
 This file is both the demo and the documentation: the engine reads the
 checkboxes below, everything else is for humans.

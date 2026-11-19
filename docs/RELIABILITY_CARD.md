@@ -1,4 +1,4 @@
-# Reliability card — agent-loop-engine
+# Reliability card: agent-loop-engine
 
 | Field | Value |
 | --- | --- |
