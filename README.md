@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Decide one next action for an agent loop from a markdown backlog and exit-code gates, and journal it.
+Agent reliability: decide one next action for an agent loop from a markdown backlog and exit-code gates, and journal it.
 
 loop-engine is a small command-line tool that reads a markdown backlog, runs the quality gates a team names, and prints one next action. We built it because an agent on a long project can keep adding features while its tests fail, and a rule written in a prompt to stop this cannot be unit-tested. Given the gate results, it applies fixed rules in order: a failing gate means repair, a backlog head untouched for more than two days is skipped in favour of the cheapest open item, and otherwise the next item is taken. It prints the action, target and reason, appends them to a journal, and exits 0.
 
@@ -23,6 +23,10 @@ reason : gate 'tests' is red; no new work on a broken base
 ```
 
 That command exits 0, because a decision was made, and it appends the decision to `journal/JOURNAL.md`. The gate `examples/fail_gate.py` always exits 1, so the red-gate path is the same on Windows and Unix.
+
+![agent-loop-engine: backlog + gate results is checked by a red gate means repair; the result is repair with exit 0](docs/readme-flow.svg)
+
+[How it works](#how-it-works) · [Results](#what-each-result-means) · [Limits](#limits) · [Interview pack](docs/INTERVIEW.md) · [Cite](#citation) · Part of [a small open stack for checking AI agents and their judges](https://homayoun-safarpour.github.io)
 
 ## What each result means
 
