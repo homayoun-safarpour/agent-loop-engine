@@ -1,12 +1,14 @@
 # loop-engine
 
-**Agent loops keep adding features while pytest is red. Chat prompts cannot enforce repair-before-advance.**
+**An agent on a long project keeps adding features while the tests are failing, because nothing outside the chat tells it to repair first.**
 
 [![CI](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/homayoun-safarpour/agent-loop-engine/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Deterministic agent loop: state file, quality gates, one bounded action, append-only journal.
+Decide one next action for an agent loop from a markdown backlog and exit-code gates, and journal it.
+
+loop-engine is a small command-line tool that reads a markdown backlog, runs the quality gates a team names, and prints one next action. We built it because an agent on a long project can keep adding features while its tests fail, and a rule written in a prompt to stop this cannot be unit-tested. Given the gate results, it applies fixed rules in order: a failing gate means repair, a backlog head untouched for more than two days is skipped in favour of the cheapest open item, and otherwise the next item is taken. It prints the action, target and reason, appends them to a journal, and exits 0.
 
 ```bash
 git clone https://github.com/homayoun-safarpour/agent-loop-engine
@@ -20,54 +22,44 @@ target : tests
 reason : gate 'tests' is red; no new work on a broken base
 ```
 
+That command exits 0, because a decision was made, and it appends the decision to `journal/JOURNAL.md`. The gate `examples/fail_gate.py` always exits 1, so the red-gate path is the same on Windows and Unix.
+
+## What each result means
+
+| Action | Exit | Meaning |
+|---|---|---|
+| `repair` | 0 | A gate failed. The target is the first failed gate, and no backlog item is offered. |
+| `unstick` | 0 | Gates passed, but the head item was touched more than `--stale-days` days ago (default 2). The target is the cheapest open item (S, then M, then L). |
+| `advance` | 0 | Gates passed, and the head item is fresh, undated or already the cheapest. The target is the first open item. |
+| `close` | 0 | The backlog has no open items. The target is `cycle`. |
+| (error) | 2 | The state file is missing, or a `--gate` value is not `NAME=COMMAND`. The message goes to stderr. |
+
+A decision shows which kind of step the rules allow next. It does not show that the work done in that step was good, and because every decision exits 0, a tick does not fail a CI job by itself.
+
 ## Use this when
 
-| Situation | Use this? |
+| Situation | Use loop-engine? |
 | --- | --- |
-| You want one bounded next action after pytest/ruff (or any exit code) | Yes |
-| You need a journal a later session can read without the chat log | Yes |
-| You want the engine to execute the backlog item itself | No. It prints the order. A human, cron, or agent runs it. |
-| You want an LLM to decide the policy | No. The three rules are unit-tested Python. |
+| You want one next action after pytest, ruff or any other check with an exit code | Yes |
+| You need a journal that a later session can read without the chat log | Yes |
+| You want the tool to carry out the backlog item | No. It prints the order, and a person, a cron job or an agent carries it out |
+| You want a CI job to fail when a check is red | No. Make the check itself the CI step, or use [trace-gate](https://github.com/homayoun-safarpour/trace-gate) for agent runs |
+| You want a language model to choose the next task | No. The rules are fixed Python with unit tests |
 
-Not on PyPI yet. `pip install git+https://github.com/homayoun-safarpour/agent-loop-engine` is the other path.
-
-The limit: it does not score whether the work was good. It only decides which class of action is safe next.
+The package is not on PyPI yet. `pip install git+https://github.com/homayoun-safarpour/agent-loop-engine` is the other way to install it.
 
 ## The problem
 
-An agent (or a human) working a multi-week project session by session keeps making the same three mistakes:
+An agent working on a project session by session tends to make three mistakes. It adds new work while the tests are red, so every later change makes the repair larger. It waits on the hardest item at the head of the backlog, so nothing else moves. It keeps no memory between sessions, so decisions are made again from old chat logs. A scheduler runs tasks on time, but it does not decide which task is safe to run, and that decision is small enough to write as code and test.
 
-| Failure | What it looks like | What it costs |
-|---|---|---|
-| New work on a broken base | Tests are red, agent adds a feature anyway | Every later change multiplies the repair cost |
-| Stalling on the hardest item | Backlog head untouched for a week, nothing else moves either | The loop dies waiting for its worst task |
-| No memory between sessions | "Why is the project in this state?" requires chat-log archaeology | Decisions get re-made, work gets re-done |
+## How it works
 
-Schedulers run tasks on time. They do not decide which task is safe to run. That decision layer is what is missing, and it is small enough to be testable.
+1. `loopengine.state` reads the loop's state file, a markdown file with one checkbox line per backlog item.
+2. `loopengine.gates` runs each `--gate` command and records pass (exit 0) or fail.
+3. `loopengine.decide` picks one action, in this order of priority: `repair`, `unstick`, `advance`, `close`.
+4. `loopengine.journal` appends the gate results and the decision to the journal.
 
-## The insight
-
-One tick, four steps, one bounded action out:
-
-```
-read state (markdown backlog, human-editable)
-        |
-run quality gates (pytest, ruff, anything with an exit code)
-        |
-decide ONE action:   repair > unstick > advance > close
-        |
-journal it (append-only) and hand the order to the operator
-```
-
-The decision policy is three rules in priority order: **repair beats progress** (a red gate blocks all new work), **momentum beats order** (a head item stale >2 days loses its turn to the cheapest open item), and **one action per tick** (a failed session costs one increment, never the day).
-
-## Quickstart
-
-Interview pack: [docs/INTERVIEW.md](docs/INTERVIEW.md).
-
-Claim boundaries: [docs/RELIABILITY_CARD.md](docs/RELIABILITY_CARD.md).
-
-Your project state is a markdown file anyone can edit with zero tooling:
+Backlog lines look like this. Other lines are ignored, so the file can also hold notes.
 
 ```markdown
 - [x] M1 Baseline model training script with fixed seed (cost: M) (touched: 2026-08-01)
@@ -75,106 +67,61 @@ Your project state is a markdown file anyone can edit with zero tooling:
 - [ ] M3 Wire ruff + pytest into pre-commit (cost: S) (touched: 2026-08-02)
 ```
 
-Run one tick with your gates:
+With green gates on the bundled example, the head item M2 is stale, so the cheapest open item is taken:
 
 ```bash
-loop-engine tick --state LOOP_STATE.md \
-  --gate "tests=pytest -q" \
+loop-engine tick --state examples/LOOP_STATE.md \
+  --gate "tests=python -m pytest -q" \
   --gate "lint=ruff check src tests"
 ```
 
-The engine prints exactly one order and why. It never executes the backlog item itself. It tells the operator (human, cron job, or LLM agent) what the next bounded action is.
+```text
+action : unstick
+target : M3 Wire ruff + pytest into pre-commit
+reason : head item stale 111d (> 2d); momentum beats order, taking the cheapest open item
+```
 
-When the gates are green on the bundled example state, the same CLI advances:
+The day count depends on the run date (20 November 2026 here). With `--json`, the first-screen command prints:
 
 ```text
-action : advance
-target : M2 Add evaluation harness with held-out split
-reason : gates green and head item fresh; take the next open item
+{"action": "repair", "target": "tests", "reason": "gate 'tests' is red; no new work on a broken base"}
 ```
 
-## Field guide
-
-Prompting alone fails on long work when memory is only a chat window and "done" is whatever the model claims. Use the standalone **[agent-loop-field-guide](https://github.com/homayoun-safarpour/agent-loop-field-guide)** (copy `templates/LOOP_CONTRACT.md` into your project before you automate). A copy also lives here under [`docs/FIELD_GUIDE.md`](docs/FIELD_GUIDE.md) and [`examples/loop_contract/`](examples/loop_contract/).
-
-## What is in the box
-
-| Module | What it does | Use it when |
-|---|---|---|
-| `loopengine.state` | Parses the markdown backlog (checkboxes, cost, staleness) | You want a queue humans can edit in any editor |
-| `loopengine.gates` | Runs shell-command quality gates, captures pass/fail | Anything with an exit code should block bad work |
-| `loopengine.decide` | The 3-rule decision policy, fully unit-tested | You need "which task is *safe*", not "which task is next" |
-| `loopengine.journal` | Append-only tick journal | The project must explain its own history |
-| `loopengine.cli` | `loop-engine tick`, plain or `--json` output | Wiring the loop into cron, CI, or an agent prompt |
-
-## Worked example (real output)
-
-This repository ran the engine on itself during its own first build. First tick: the lint gate was genuinely red:
-
-```
-$ loop-engine tick --state examples/LOOP_STATE.md --gate "tests=python -m pytest -q" --gate "lint=python -m ruff check src tests"
-action : repair
-target : lint
-reason : gate 'lint' is red; no new work on a broken base
-```
-
-After fixing lint, the same command:
-
-```
-action : advance
-target : M2 Add evaluation harness with held-out split
-reason : gates green and head item fresh; take the next open item
-```
-
-The append-only journal it produced (`examples/journal/JOURNAL.md`):
+The journal entry for the green-gate tick (path set with `--journal`):
 
 ```markdown
-## 2026-08-03 20:13
-- gates: tests=PASS, lint=FAIL
-- decision: **repair** -> lint
-- reason: gate 'lint' is red; no new work on a broken base
-
-## 2026-08-03 20:15
+## 2026-11-20 01:37
 - gates: tests=PASS, lint=PASS
-- decision: **advance** -> M2 Add evaluation harness with held-out split
-- reason: gates green and head item fresh; take the next open item
+- decision: **unstick** -> M3 Wire ruff + pytest into pre-commit
+- reason: head item stale 111d (> 2d); momentum beats order, taking the cheapest open item
 ```
 
-## Why this exists
+Interview pack: [docs/INTERVIEW.md](docs/INTERVIEW.md). Claim limits: [docs/RELIABILITY_CARD.md](docs/RELIABILITY_CARD.md). Before automating a loop, the [field guide](docs/FIELD_GUIDE.md) and the blank contract in [`examples/loop_contract/`](examples/loop_contract/) list five decisions to make first.
 
-Long-running agent projects fail on policy, not on capability. The agent often knows *how* to do tasks and still has no tested rule for *which* task is safe next. Encoding that policy in prompts drifts and cannot be unit-tested. So the policy became a package: three rules, sixteen tests (`tests/test_decide.py::test_a_red_gate_always_beats_new_work` is the central claim), and an append-only journal any session can read to reconstruct state.
+## Limits
 
-## Design commitments
+- It is not a task runner or an agent. It prints one order per tick and never runs the backlog item.
+- It does not judge the work itself. A decision is only as good as its gates.
+- Gate commands run through the shell exactly as written, with a 600-second timeout, and a timeout counts as a failure. Use only commands you trust.
+- Staleness comes from the hand-written `touched` date. An undated item is never stale, and an item without a cost counts as M.
+- It needs Python 3.10 or later and has no runtime dependencies.
 
-- **No LLM dependency.** The engine decides; whatever executes can be a human, cron, or an agent. Decision logic must be deterministic and testable.
-- **Zero runtime dependencies.** Standard library only.
-- **Human-editable state.** Markdown checkboxes, not a database. If the tooling breaks, the queue survives.
-- **Every claim above is a test.** The central one: `tests/test_decide.py::test_a_red_gate_always_beats_new_work`. The first-screen claim: `tests/test_readme.py::test_readme_first_screen_matches_top100_craft`.
+## How we did it
 
-## Field alignment
+1. **Wrote the policy as code.** The rules are plain Python in `loopengine/decide.py`, so each one has a unit test instead of a sentence in a prompt.
+2. **Kept the state in markdown.** Anyone can edit the backlog in any editor, so the queue survives if the tool breaks.
+3. **Made the journal append-only.** A later session reads why the project is in its current state. Named tests: `test_a_red_gate_always_beats_new_work`, `test_a_stale_head_yields_to_the_cheapest_item`, `test_readme_first_screen_matches_top100_craft`.
 
-Eval-driven agent systems treat metrics and gates as the control loop (DSPy-style optimization, LangSmith-style online eval, trajectory deploy gates). This engine is the policy layer: **red gates block advance**. Claim boundaries: [docs/RELIABILITY_CARD.md](docs/RELIABILITY_CARD.md).
+## Related tools
 
-## Related instruments
-
-- [agent-loop-field-guide](https://github.com/homayoun-safarpour/agent-loop-field-guide) - fill the Loop Contract before you automate
-- [judge-drift-sentinel](https://github.com/homayoun-safarpour/judge-drift-sentinel) - JUDGE_DRIFT vs SYSTEM_CHANGE gate (pairs with `examples/as_loop_gate.py` there)
-- [trace-gate](https://github.com/homayoun-safarpour/trace-gate) - trajectory deploy gate (exit 0/2)
-- [judge-field-guide](https://github.com/homayoun-safarpour/judge-field-guide) - link-checked map of the LLM-judge ecosystem
-
-## Fail-closed demo
-
-The first-screen command uses `examples/fail_gate.py` so the red-gate path is the same on Windows and Unix.
-
-```bash
-loop-engine tick --state examples/LOOP_STATE.md --gate "tests=python examples/fail_gate.py"
-```
-
-Expect `action: repair` (gate red, no advance). That is the hire-signal: policy fails closed when quality is red.
+- [agent-loop-field-guide](https://github.com/homayoun-safarpour/agent-loop-field-guide): the Loop Contract to fill in before you automate.
+- [trace-gate](https://github.com/homayoun-safarpour/trace-gate): fails CI when recorded agent runs score below a frozen baseline (exit 0 or 2).
+- [judge-drift-sentinel](https://github.com/homayoun-safarpour/judge-drift-sentinel): tells a change in the system from a change in the judge.
+- [judge-field-guide](https://github.com/homayoun-safarpour/judge-field-guide): a link-checked map of tools for language-model judges.
 
 ## Contributing
 
-Issues and PRs welcome. Run `pytest -q` and `ruff check src tests` before pushing. The engine itself will tell you the same thing on the next tick.
+Run `pytest -q` and `ruff check src tests` before a pull request, as CI does on Python 3.10 to 3.12.
 
 ## Citation
 
@@ -191,4 +138,4 @@ Author: Homayoun Safarpour. [LinkedIn](https://www.linkedin.com/in/homayoun-safa
 
 ## License
 
-MIT
+MIT. See [`LICENSE`](LICENSE).
