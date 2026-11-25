@@ -36,7 +36,7 @@ That command exits 0, because a decision was made, and it appends the decision t
 | `unstick` | 0 | Gates passed, but the head item was touched more than `--stale-days` days ago (default 2). The target is the cheapest open item (S, then M, then L). |
 | `advance` | 0 | Gates passed, and the head item is fresh, undated or already the cheapest. The target is the first open item. |
 | `close` | 0 | The backlog has no open items. The target is `cycle`. |
-| (error) | 2 | The state file is missing, or a `--gate` value is not `NAME=COMMAND`. The message goes to stderr. |
+| (error) | 2 | The state file is missing or has a checkbox line it cannot read (a bad date, an unknown cost, a tag given twice), or a `--gate` value is not `NAME=COMMAND` with a non-empty name. The message goes to stderr, and no decision or journal entry is written. |
 
 A decision shows which kind of step the rules allow next. It does not show that the work done in that step was good, and because every decision exits 0, a tick does not fail a CI job by itself.
 
@@ -63,7 +63,7 @@ An agent working on a project session by session tends to make three mistakes. I
 3. `loopengine.decide` picks one action, in this order of priority: `repair`, `unstick`, `advance`, `close`.
 4. `loopengine.journal` appends the gate results and the decision to the journal.
 
-Backlog lines look like this. Other lines are ignored, so the file can also hold notes.
+Backlog lines look like this. The bullet may be `-`, `*`, `+` or a number, and the `cost` and `touched` tags may come in either order. Other lines are ignored, so the file can also hold notes.
 
 ```markdown
 - [x] M1 Baseline model training script with fixed seed (cost: M) (touched: 2026-08-01)
@@ -106,7 +106,7 @@ Interview pack: [docs/INTERVIEW.md](docs/INTERVIEW.md). Claim limits: [docs/RELI
 
 - It is not a task runner or an agent. It prints one order per tick and never runs the backlog item.
 - It does not judge the work itself. A decision is only as good as its gates.
-- Gate commands run through the shell exactly as written, with a 600-second timeout, and a timeout counts as a failure. Use only commands you trust.
+- Gate commands run through the shell exactly as written, with a 600-second timeout, and a timeout counts as a failure. On timeout the gate and every process it started are stopped. Gate output is read as UTF-8, and bytes that are not UTF-8 are replaced. Use only commands you trust.
 - Staleness comes from the hand-written `touched` date. An undated item is never stale, and an item without a cost counts as M.
 - It needs Python 3.10 or later and has no runtime dependencies.
 

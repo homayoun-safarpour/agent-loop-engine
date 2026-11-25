@@ -16,7 +16,7 @@ from pathlib import Path
 from loopengine.decide import decide
 from loopengine.gates import Gate, run_gates
 from loopengine.journal import append_entry
-from loopengine.state import parse_state
+from loopengine.state import StateError, parse_state
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -43,11 +43,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"state file not found: {state_path}", file=sys.stderr)
         return 2
 
-    state = parse_state(state_path.read_text(encoding="utf-8"))
+    try:
+        state = parse_state(state_path.read_text(encoding="utf-8"))
+    except StateError as exc:
+        print(f"bad state file {state_path}: {exc}", file=sys.stderr)
+        return 2
     gates = []
     for spec in args.gate:
         name, _, command = spec.partition("=")
-        if not command:
+        name = name.strip()
+        if not name or not command.strip():
             print(f"bad --gate spec (want NAME=COMMAND): {spec}", file=sys.stderr)
             return 2
         gates.append(Gate(name=name, command=command))
