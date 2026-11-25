@@ -9,7 +9,10 @@ Item grammar, one line each:
     - [ ] A5 Publish to PyPI (cost: M) (touched: 2026-08-03)
     - [x] A1 Package scaffold (cost: L)
 
-Cost is S, M, or L. `touched` is the last date anyone moved the item.
+Cost is S, M, or L. `touched` is the last date anyone moved the item. The
+bullet may be `-`, `*`, `+` or a number (`1.` or `1)`), and the two tags may
+come in either order. A checkbox line that cannot be read raises StateError,
+so a typo never makes an item vanish from the queue.
 """
 
 from __future__ import annotations
@@ -18,13 +21,17 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
-_ITEM_RE = re.compile(
-    r"^- \[(?P<done>[ xX])\]\s+(?P<title>.+?)"
-    r"(?:\s+\(cost:\s*(?P<cost>[SML])\))?"
-    r"(?:\s+\(touched:\s*(?P<touched>\d{4}-\d{2}-\d{2})\))?\s*$"
-)
+_BULLET = r"(?:[-*+]|\d+[.)])"
+_CHECKBOX_RE = re.compile(rf"^{_BULLET}\s+\[[ xX]?\]")
+_ITEM_RE = re.compile(rf"^{_BULLET}\s+\[(?P<done>[ xX])\]\s+(?P<rest>\S.*?)\s*$")
+_TAG_RE = re.compile(r"\s+\((?P<key>cost|touched):\s*(?P<value>[^()]*?)\s*\)$")
+_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 COST_ORDER = {"S": 0, "M": 1, "L": 2}
+
+
+class StateError(ValueError):
+    """A backlog line in the state file cannot be read."""
 
 
 @dataclass
@@ -61,17 +68,36 @@ def parse_state(text: str) -> LoopState:
     can double as human documentation.
     """
     items: list[BacklogItem] = []
-    for line in text.splitlines():
-        m = _ITEM_RE.match(line.strip())
-        if not m:
+    for lineno, raw in enumerate(text.splitlines(), start=1):
+        line = raw.strip()
+        if not _CHECKBOX_RE.match(line):
             continue
-        touched = m.group("touched")
-        items.append(
-            BacklogItem(
-                title=m.group("title").strip(),
-                done=m.group("done").lower() == "x",
-                cost=m.group("cost") or "M",
-                touched=date.fromisoformat(touched) if touched else None,
-            )
-        )
+        m = _ITEM_RE.match(line)
+        if not m:
+            raise StateError(f"line {lineno}: cannot read backlog item: {line}")
+        items.append(_parse_item(m.group("done"), m.group("rest"), lineno, line))
     return LoopState(items=items)
+
+
+def _parse_item(done: str, rest: str, lineno: int, line: str) -> BacklogItem:
+    """Strip the trailing (cost: ...) and (touched: ...) tags, in any order."""
+    tags: dict[str, str] = {}
+    while tag := _TAG_RE.search(rest):
+        key = tag.group("key")
+        if key in tags:
+            raise StateError(f"line {lineno}: tag '{key}' given twice: {line}")
+        tags[key] = tag.group("value")
+        rest = rest[: tag.start()]
+    cost = tags.get("cost", "M")
+    if cost not in COST_ORDER:
+        raise StateError(f"line {lineno}: cost must be S, M or L, not '{cost}': {line}")
+    touched = None
+    if "touched" in tags:
+        value = tags["touched"]
+        try:
+            if not _DATE_RE.fullmatch(value):
+                raise ValueError("want YYYY-MM-DD")
+            touched = date.fromisoformat(value)
+        except ValueError as exc:
+            raise StateError(f"line {lineno}: bad touched date '{value}' ({exc}): {line}") from exc
+    return BacklogItem(title=rest.strip(), done=done.lower() == "x", cost=cost, touched=touched)
